@@ -1,8 +1,9 @@
+from datetime import time
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
-from heapq import nsmallest
+import errno
 from Funtions import *
 import pandas as pd
 from tkinter import ttk
@@ -38,7 +39,7 @@ class Neorona:
             
 
     # INICIAR ENTRENAMIENTO
-    def Entrenar(self, rataAprendizaje, coeficieteVecindad, neuronas, numeroIteraciones, funcionSalida, frame):
+    def Entrenar(self, rataAprendizaje, errorMaximo, neuronas, numeroIteraciones, funcionSalida, frame):
 
         ###################################
         frameBarra = tk.Frame(frame, width=550, height=50, background="#fafafa")
@@ -81,10 +82,12 @@ class Neorona:
         while True:
 
             barra.step()
-            self.DistanciasGanadoras = []
+            self.errorRMS = []
             Error = 0
 
             print('ITERACION:', Iteracion)
+            print('------------------------------------------------------------------------')
+            print('------------------------------------------------------------------------')
             print()
 
             for entrada, salida in zip(self.Entradas, self.Salidas):
@@ -104,6 +107,7 @@ class Neorona:
                 print()
 
                 errorPatron = self.func.ErrorPatron(_salidaSoma)
+                self.errorRMS.append(errorPatron)
                 print('ERROR DEL PATRON:', errorPatron)
                 print()
 
@@ -115,12 +119,11 @@ class Neorona:
                 print('NUEVOS UMBRALES:', umbrales)
                 print()
 
-                Iteracion += 1
                 print('------------------------------------')
                 print()
             
             
-            Error = sum(self.DistanciasGanadoras) / len(self.Entradas)
+            Error = sum(self.errorRMS) / len(self.Entradas)
             tk.Label(frameBarra, text='Error: ' + str(round(Error, 7)), bg="#fafafa").place(relx=.15, rely=.6)
             tk.Label(frameBarra, text='Iteracion: ' + str(Iteracion), bg="#fafafa").place(relx=.65, rely=.6)
             Iteracion += 1
@@ -132,20 +135,18 @@ class Neorona:
 
             print()
             print('///////////////////////////////////////////////')
-            print('RATA ACTUALIZADA:', rataAprendizaje)
-            print('DISTANCIAS GANADORAS:', self.DistanciasGanadoras, '/', len(self.Entradas))
-            print('ERROR:', Error)
+            print('ERROR: ', self.errorRMS, '/', len(self.Entradas), 'ERROR RMS:', Error)
             print()
 
-            if((Iteracion > numeroIteraciones) or (Error <= 0.0001)):
-                self.GuardarResultados(pesos, self.Entradas, coeficieteVecindad)
-
             #CONDICIONES DE PARADA
-            if((Iteracion > numeroIteraciones) or (Error <= 0.0001)):
+            if((Iteracion > numeroIteraciones) or (Error <= errorMaximo)):
+                self.GuardarResultados(self.Entradas, self.Salidas, pesos, umbrales, funcionSalida)
                 break
 
         print('ITERACIONES:', Iteracion-1)
         print('ERROR FINAL:', Error)
+        print()
+        
     # LLENAR MATRICES ENTRADAS
     def NormalizarDatosSimulacion(self, ruta):
         self.EntradasSimulacion = []
@@ -180,7 +181,7 @@ class Neorona:
             for j in range(len(columnCoe)):
                 self.Coe = columnCoe[j,i]
 
-    def Simular(self, ruta, coeficieteVecindad):
+    def Simular(self, ruta, errorMaximo):
 
         plt.style.use('ggplot')
         plt.grid(True)
@@ -209,24 +210,32 @@ class Neorona:
             print(self.DistanciasGanadorasSimulacion)
 
 
-    def GuardarResultados(self, pesos, entradas, coeficiete):
+    def GuardarResultados(self, entradas, salidas, pesos, umbrales, funcionSalida):
+        ColumnaMatriz = []
         ColumnasPeso = []
-        ColumnaEntradas = []
+
+        for i in range(len(entradas[0]) + len(salidas[0])):
+            ColumnaMatriz.append('X' + str(i+1) if i < len(entradas[0]) else 'YD' + str(i+1-len(entradas[0])))
 
         for i in range(len(pesos[0])):
             ColumnasPeso.append('W' + str(i+1))
-
-        for i in range(len(entradas[0])):
-            ColumnaEntradas.append('X' + str(i+1))
         
-        df = pd.DataFrame(entradas, columns=ColumnaEntradas)
-        _df = pd.DataFrame(pesos, columns=ColumnasPeso)
-        df_ = pd.DataFrame([coeficiete], columns=['Config'])
+        dfMatrix = pd.DataFrame(np.concatenate((np.array(entradas), np.array(salidas)), axis=1), columns=ColumnaMatriz)
+        dfPesos = pd.DataFrame(pesos, columns=ColumnasPeso)
+        dfUmbrales = pd.DataFrame(umbrales, columns=['U'])
+        dfConfig = pd.DataFrame([funcionSalida], columns=['Config'])
+
+        try:
+            os.mkdir('DATA/OUT')
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
 
         with pd.ExcelWriter('DATA/OUT/' + self.Entranamiento + '.xlsx') as writer: # pylint: disable=abstract-class-instantiated
-            df.to_excel(writer, sheet_name='Entradas', index=False)
-            _df.to_excel(writer, sheet_name='Pesos', index=False)
-            df_.to_excel(writer, sheet_name='Configuracion', index=False)
+            dfMatrix.to_excel(writer, sheet_name='Matriz', index=False)
+            dfPesos.to_excel(writer, sheet_name='Pesos', index=False)
+            dfUmbrales.to_excel(writer, sheet_name='Umbrales', index=False)
+            dfConfig.to_excel(writer, sheet_name='Configuracion', index=False)
 
     # LIMPIAR CAPAS
     def Limpiar(self):

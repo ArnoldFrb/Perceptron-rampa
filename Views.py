@@ -1,3 +1,4 @@
+from os import system
 import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter import filedialog
@@ -39,7 +40,7 @@ class Views:
         tk.Label(self.frameConfig, text="COEVC:", bg="#fafafa").place(relx=.37, rely=.5)
         self.entCoeficiente = tk.Entry(self.frameConfig, width=5)
         self.entCoeficiente.place(relx=.47, rely=.5)
-        self.entCoeficiente.insert(0, 0.2)
+        self.entCoeficiente.insert(0, 0.0001)
 
         tk.Label(self.frameConfig, text="NEURO:", bg="#fafafa").place(relx=.55, rely=.5)
         self.entNeuronas = tk.Entry(self.frameConfig, width=5)
@@ -89,8 +90,12 @@ class Views:
         self.frameEntrenar.place(relx=.426, rely=.02)
 
         self.btnEntrenar = tk.Button(self.frameEntrenar, text="Entrenar", state=tk.DISABLED, command= self.Event_btnEntrenar,
-         relief="flat", overrelief="flat", bg="#e3e3e3", borderwidth=2)
-        self.btnEntrenar.place(relx=.01, rely=.1)
+         relief="flat", overrelief="flat", bg="#e3e3e3", borderwidth=0)
+        self.btnEntrenar.place(relx=.01, rely=.03)
+
+        self.btnPausar = tk.Button(self.frameEntrenar, text="Detener", state=tk.DISABLED, command= self.Event_btnPausar,
+         relief="flat", overrelief="flat", bg="#e3e3e3", borderwidth=0)
+        self.btnPausar.place(relx=.01, rely=.52)
 
         self.frameEntranamiento = tk.Frame(frameMain, width=620, height=228, background="#fafafa")
         self.frameEntranamiento.place(relx=.426, rely=.115)
@@ -117,6 +122,7 @@ class Views:
         self.btnEntrenar['state'] = tk.NORMAL
 
     def Event_btnEntrenar(self):
+        self.btnPausar['state'] = tk.NORMAL
 
         rta = int(self.entRataAprendizaje.get())
         coe = float(self.entCoeficiente.get())
@@ -136,8 +142,10 @@ class Views:
             return
 
         self.neuro.Entrenar(rta, coe, neu, ite, self.cobBoxCompetencia.get(), self.frameEntrenar)
-
-        self.Graficar(self.frameEntranamiento, self.neuro.DistanciasGanadoras)
+        self.Graficar(self.frameEntranamiento, self.neuro.errorRMS)
+    
+    def Event_btnPausar(self):
+        system('pause')
 
     def Event_btnCargarDatos(self):
         self._ruta = filedialog.askopenfilename()
