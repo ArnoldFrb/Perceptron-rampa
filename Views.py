@@ -105,6 +105,10 @@ class Views:
         self.neuro.NormalizarDatos(self.ruta)
         Matriz = pd.read_csv(self.ruta, delimiter=' ')
 
+        if('YD' in Matriz.columns):
+            messagebox.showinfo(message="No se encuentra salidas definidas en la matriz presentada", title="ERROR")
+            return
+
         treeView = ttk.Treeview(self.frameData)
         self.CrearGrid(treeView, self.frameData)
         self.LlenarTabla(treeView, Matriz)
