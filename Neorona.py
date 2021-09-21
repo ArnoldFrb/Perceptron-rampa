@@ -39,7 +39,7 @@ class Neorona:
             
 
     # INICIAR ENTRENAMIENTO
-    def Entrenar(self, rataAprendizaje, errorMaximo, neuronas, numeroIteraciones, funcionSalida, frame):
+    def Entrenar(self, rataAprendizaje, errorMaximo, numeroIteraciones, funcionSalida, frame):
 
         ###################################
         frameBarra = tk.Frame(frame, width=550, height=50, background="#fafafa")
@@ -83,6 +83,7 @@ class Neorona:
 
             barra.step()
             self.errorRMS = []
+            self.vsSalidas = []
             Error = 0
 
             print('ITERACION:', Iteracion)
@@ -95,6 +96,7 @@ class Neorona:
                 print()
 
                 salidaSoma = self.func.FuncionSoma(entrada, pesos, umbrales)
+                self.vsSalidas.append([sum(salida), sum(salidaSoma)])
                 print('SALIDA SOMA:', salidaSoma)
                 print()
 
@@ -130,7 +132,7 @@ class Neorona:
 
             GraficaError.append(Error)
             line, = plt.plot(GraficaError)
-            plt.pause(0.005)
+            plt.pause(0.0005)
             plt.cla()
 
             print()
@@ -146,40 +148,54 @@ class Neorona:
         print('ITERACIONES:', Iteracion-1)
         print('ERROR FINAL:', Error)
         print()
-        
+
     # LLENAR MATRICES ENTRADAS
     def NormalizarDatosSimulacion(self, ruta):
         self.EntradasSimulacion = []
+        self.SalidasSimulacion = []
         self.PesosSimulacion = []
+        self.UmbralesSimulacion = []
 
-        MatrizEntradas = pd.read_excel(ruta, sheet_name='Entradas')
+        Matriz = pd.read_excel(ruta, sheet_name='Matriz')
         MatrizPesos = pd.read_excel(ruta, sheet_name='Pesos')
-        MatrizCoeficiente = pd.read_excel(ruta, sheet_name='Configuracion')
+        MatrizUmbrales = pd.read_excel(ruta, sheet_name='Umbrales')
+        MatrizFuncionActivacion = pd.read_excel(ruta, sheet_name='Configuracion')
 
-        colEntradas = MatrizEntradas.columns
+        colMatriz = Matriz.columns
         colPesos = MatrizPesos.columns
-        colCoe = MatrizCoeficiente.columns
+        colUmbrales = MatrizUmbrales.columns
+        colFuncionActivacion = MatrizFuncionActivacion.columns
 
-        columnEntradas = MatrizEntradas.to_numpy()
+
+        columnMatriz = Matriz.to_numpy()
         columnPesos = MatrizPesos.to_numpy()
-        columnCoe = MatrizCoeficiente.to_numpy()
+        columnUmbrales = MatrizUmbrales.to_numpy()
+        columnFuncionActivacion = MatrizFuncionActivacion.to_numpy()
 
-        for i in range(len(colEntradas)):
+        for i in range(len(colMatriz)):
             Fila = []
-            for j in range(len(columnEntradas)):
-                Fila.append(columnEntradas[j,i])
-            self.EntradasSimulacion.append(Fila)
+            if('X' in colMatriz[i]):
+                for j in range(len(columnMatriz)):
+                    Fila.append(columnMatriz[j,i])
+                self.EntradasSimulacion.append(Fila)
+            else:
+                for j in range(len(columnMatriz)):
+                    Fila.append(columnMatriz[j,i])
+                self.SalidasSimulacion.append(Fila)
 
         for i in range(len(colPesos)):
             Fila = []
             for j in range(len(columnPesos)):
                 Fila.append(columnPesos[j,i])
             self.PesosSimulacion.append(Fila)
+        
+        for i in range(len(columnUmbrales)):
+            self.UmbralesSimulacion.append(columnUmbrales[i][0])
 
-        for i in range(len(colCoe)):
+        for i in range(len(colFuncionActivacion)):
             Fila = []
-            for j in range(len(columnCoe)):
-                self.Coe = columnCoe[j,i]
+            for j in range(len(columnFuncionActivacion)):
+                self.FuncionActivacionSimulacion = columnFuncionActivacion[j,i]
 
     def Simular(self, ruta, errorMaximo):
 
@@ -189,25 +205,21 @@ class Neorona:
         self.NormalizarDatosSimulacion(ruta)
 
         self.EntradasSimulacion = self.func.NormalizarMatrices(self.EntradasSimulacion)
+        self.SalidasSimulacion = self.func.NormalizarMatrices(self.SalidasSimulacion)
         self.PesosSimulacion = self.func.NormalizarMatrices(self.PesosSimulacion)
 
         print('//////////////////////////////////////////////////////')
         print('----------------------SIMULACION----------------------')
         print()
 
-        self.DistanciasGanadorasSimulacion = []
+        self.SalidasGeneradas = []
 
         for entrada in self.EntradasSimulacion:
-            print('PATRON:', entrada)
-            print()
+                salidaSoma = self.func.FuncionSoma(entrada, self.PesosSimulacion, self.UmbralesSimulacion)
+                self.SalidasGeneradas.append(salidaSoma)
 
-            DistanciaEuclidiana = self.func.DistanciaEuclidiana(entrada, self.PesosSimulacion)
-
-            NeuronaVencedora = np.array(DistanciaEuclidiana).flat[np.abs(np.array(DistanciaEuclidiana) - self.Coe).argmin()]
-            self.DistanciasGanadorasSimulacion.append(NeuronaVencedora)
-
-            print('DISTANCIA VENCEDOR:')
-            print(self.DistanciasGanadorasSimulacion)
+        print('SALIDAS:')
+        print(self.SalidasGeneradas)
 
 
     def GuardarResultados(self, entradas, salidas, pesos, umbrales, funcionSalida):
