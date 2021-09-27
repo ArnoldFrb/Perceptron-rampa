@@ -10,20 +10,11 @@ class Funtions:
 
     # METODO PARA GENERAR PESOS
     def Generar_pesos(self, row, col):
-        Matriz = []
-        for N in range(row):
-            Fila = []
-            for M in range(col):
-                Fila.append(round(rn.uniform(-1, 1), 2))
-            Matriz.append(Fila)
-        return Matriz
+        return np.random.uniform(-1, 1, [row, col])
 
     # METODO PARA GENERAR UMBRALES
     def Generar_umbrales(self, col):
-        Fila = []
-        for M in range(col):
-            Fila.append(round(rn.uniform(-1, 1), 2))
-        return Fila
+        return np.random.uniform(-1, 1, [col])
 
     # NORMALIZAR ENTRADAS
     def NormalizarMatrices(self, entrada):
@@ -83,20 +74,16 @@ class Funtions:
     def ErrorPatron(self, salidas):
         error = 0
         for salida in salidas:
-            error += abs(salida)
+            error += np.abs(salida)
         return error / len(salidas)
 
     def ActualizarPesos(self, pesos, entradas, error, rata):
-        _pesos = []
         for i in range(len(pesos)):
-            fila = []
             for j in range(len(pesos[0])):
-                fila.append(pesos[i][j] + (entradas[i] * error[j] * rata))
-            _pesos.append(fila)
-        return _pesos
+                pesos[i][j] += (entradas[i] * error[j] * rata)
+        return pesos
 
     def ActualizarUmbrales(self, umbrales, error, rata):
-        _umbrales = []
         for i in range(len(umbrales)):
-            _umbrales.append(umbrales[i] + (1 * error[i] * rata))
-        return _umbrales
+            umbrales[i] += (rata * error[i] * 1)
+        return umbrales

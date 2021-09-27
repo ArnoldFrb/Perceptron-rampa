@@ -1,13 +1,14 @@
-from datetime import time
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
 import os
 import errno
-from Funtions import *
+import copy as cp
+import numpy as np
 import pandas as pd
-from tkinter import ttk
 import tkinter as tk
+from tkinter import messagebox
+import matplotlib.pyplot as plt
+
+from tkinter import ttk
+from Funtions import *
 
 class Neorona:
 
@@ -36,8 +37,10 @@ class Neorona:
                 for j in range(len(column)):
                     Fila.append(column[j,i])
                 self.Salidas.append(Fila)
+        
+        self.Entradas = (self.func.NormalizarMatrices(cp.deepcopy(self.Entradas)))
+        self.Salidas = self.func.NormalizarMatrices(cp.deepcopy(self.Salidas))
             
-
     # INICIAR ENTRENAMIENTO
     def Entrenar(self, rataAprendizaje, errorMaximo, numeroIteraciones, funcionSalida, frame):
 
@@ -47,31 +50,12 @@ class Neorona:
         barra = ttk.Progressbar(frameBarra, maximum=numeroIteraciones)
         barra.place(relx=.01, rely=.05, width=514)
         #####################################
-
-        self.Entradas = (self.func.NormalizarMatrices(self.Entradas))
-        print('ENTRADAS:')
-        print(np.array(self.Entradas))
-        print()
-
-        self.Salidas = self.func.NormalizarMatrices(self.Salidas)
-        print('SALIDAS:')
-        print(np.array(self.Salidas))
-        print()
         
         # INICIALIZAR PESOS
         pesos = self.func.Generar_pesos(len(self.Entradas[0]), len(self.Salidas[0]))
-        print('PESOS:')
-        print(pesos)
-        print()
-
+       
         # INICIALIZAR UMBRALES
         umbrales = self.func.Generar_umbrales(len(self.Salidas[0]))
-        print('UMBRALES:')
-        print(umbrales)
-        print()
-
-        print('FUNCION SALIDA:', funcionSalida)
-        print()
 
         GraficaError = []
         plt.style.use('ggplot')
@@ -84,50 +68,24 @@ class Neorona:
             barra.step()
             self.errorRMS = []
             self.vsSalidas = []
-            Error = 0
-
-            print('ITERACION:', Iteracion)
-            print('------------------------------------------------------------------------')
-            print('------------------------------------------------------------------------')
-            print()
 
             for entrada, salida in zip(self.Entradas, self.Salidas):
-                print('PATRON:', entrada, '=>', salida)
-                print()
 
                 salidaSoma = self.func.FuncionSoma(entrada, pesos, umbrales)
-                self.vsSalidas.append([sum(salida), sum(salidaSoma)])
-                print('SALIDA SOMA:', salidaSoma)
-                print()
-
                 _salidaSoma = self.func.FuncionSalida(funcionSalida, salidaSoma)
-                print('SALIDA:', _salidaSoma)
-                print()
+                self.vsSalidas.append([sum(salida), sum(_salidaSoma)])
 
                 errorLineal = self.func.ErrorLineal(salida, _salidaSoma)
-                print('ERROR LINEAL:', errorLineal)
-                print()
-
-                errorPatron = self.func.ErrorPatron(_salidaSoma)
+                errorPatron = self.func.ErrorPatron(errorLineal)
                 self.errorRMS.append(errorPatron)
-                print('ERROR DEL PATRON:', errorPatron)
-                print()
 
-                pesos = self.func.ActualizarPesos(pesos, entrada, errorLineal, rataAprendizaje)
-                print('NUEVOS PESOS:', pesos)
-                print()
+                pesos = self.func.ActualizarPesos(cp.deepcopy(pesos), entrada, errorLineal, rataAprendizaje)
+                umbrales = self.func.ActualizarUmbrales(cp.deepcopy(umbrales), errorLineal, rataAprendizaje)
 
-                umbrales = self.func.ActualizarUmbrales(umbrales, errorLineal, rataAprendizaje)
-                print('NUEVOS UMBRALES:', umbrales)
-                print()
-
-                print('------------------------------------')
-                print()
-            
-            
             Error = sum(self.errorRMS) / len(self.Entradas)
             tk.Label(frameBarra, text='Error: ' + str(round(Error, 7)), bg="#fafafa").place(relx=.15, rely=.6)
             tk.Label(frameBarra, text='Iteracion: ' + str(Iteracion), bg="#fafafa").place(relx=.65, rely=.6)
+            
             Iteracion += 1
 
             GraficaError.append(Error)
@@ -135,19 +93,11 @@ class Neorona:
             plt.pause(0.0005)
             plt.cla()
 
-            print()
-            print('///////////////////////////////////////////////')
-            print('ERROR: ', self.errorRMS, '/', len(self.Entradas), 'ERROR RMS:', Error)
-            print()
-
             #CONDICIONES DE PARADA
-            if((Iteracion > numeroIteraciones) or (Error <= errorMaximo)):
-                self.GuardarResultados(self.Entradas, self.Salidas, pesos, umbrales, funcionSalida)
+            if Iteracion > numeroIteraciones or errorMaximo > Error:
+                if errorMaximo > Error:
+                    self.GuardarResultados(np.array(self.Entradas), pesos, umbrales, funcionSalida)
                 break
-
-        print('ITERACIONES:', Iteracion-1)
-        print('ERROR FINAL:', Error)
-        print()
 
     # LLENAR MATRICES ENTRADAS
     def NormalizarDatosSimulacion(self, ruta):
@@ -163,7 +113,6 @@ class Neorona:
 
         colMatriz = Matriz.columns
         colPesos = MatrizPesos.columns
-        colUmbrales = MatrizUmbrales.columns
         colFuncionActivacion = MatrizFuncionActivacion.columns
 
 
@@ -174,14 +123,9 @@ class Neorona:
 
         for i in range(len(colMatriz)):
             Fila = []
-            if('X' in colMatriz[i]):
-                for j in range(len(columnMatriz)):
-                    Fila.append(columnMatriz[j,i])
-                self.EntradasSimulacion.append(Fila)
-            else:
-                for j in range(len(columnMatriz)):
-                    Fila.append(columnMatriz[j,i])
-                self.SalidasSimulacion.append(Fila)
+            for j in range(len(columnMatriz)):
+                Fila.append(columnMatriz[j,i])
+            self.EntradasSimulacion.append(Fila)
 
         for i in range(len(colPesos)):
             Fila = []
@@ -205,7 +149,6 @@ class Neorona:
         self.NormalizarDatosSimulacion(ruta)
 
         self.EntradasSimulacion = self.func.NormalizarMatrices(self.EntradasSimulacion)
-        self.SalidasSimulacion = self.func.NormalizarMatrices(self.SalidasSimulacion)
         self.PesosSimulacion = self.func.NormalizarMatrices(self.PesosSimulacion)
 
         print('//////////////////////////////////////////////////////')
@@ -216,23 +159,24 @@ class Neorona:
 
         for entrada in self.EntradasSimulacion:
                 salidaSoma = self.func.FuncionSoma(entrada, self.PesosSimulacion, self.UmbralesSimulacion)
-                self.SalidasGeneradas.append(salidaSoma)
+                _salidaSoma = self.func.FuncionSalida(self.FuncionActivacionSimulacion, salidaSoma)
+                self.SalidasGeneradas.append(sum(_salidaSoma))
 
         print('SALIDAS:')
         print(self.SalidasGeneradas)
 
 
-    def GuardarResultados(self, entradas, salidas, pesos, umbrales, funcionSalida):
+    def GuardarResultados(self, entradas, pesos, umbrales, funcionSalida):
         ColumnaMatriz = []
         ColumnasPeso = []
 
-        for i in range(len(entradas[0]) + len(salidas[0])):
-            ColumnaMatriz.append('X' + str(i+1) if i < len(entradas[0]) else 'YD' + str(i+1-len(entradas[0])))
+        for i in range(len(entradas[0])):
+            ColumnaMatriz.append('X' + str(i+1))
 
         for i in range(len(pesos[0])):
             ColumnasPeso.append('W' + str(i+1))
         
-        dfMatrix = pd.DataFrame(np.concatenate((np.array(entradas), np.array(salidas)), axis=1), columns=ColumnaMatriz)
+        dfMatrix = pd.DataFrame(entradas, columns=ColumnaMatriz)
         dfPesos = pd.DataFrame(pesos, columns=ColumnasPeso)
         dfUmbrales = pd.DataFrame(umbrales, columns=['U'])
         dfConfig = pd.DataFrame([funcionSalida], columns=['Config'])
@@ -249,9 +193,5 @@ class Neorona:
             dfUmbrales.to_excel(writer, sheet_name='Umbrales', index=False)
             dfConfig.to_excel(writer, sheet_name='Configuracion', index=False)
 
-    # LIMPIAR CAPAS
-    def Limpiar(self):
-        self.capas = []  
-
 if __name__ == '__main__':
-    print("Hola")
+    print(np.random.uniform(-1,1,[2]))

@@ -3,6 +3,8 @@ import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter import filedialog
 from tkinter import messagebox
+
+from matplotlib.pyplot import legend
 from Neorona import *
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
@@ -38,9 +40,9 @@ class Views:
         self.entRataAprendizaje.insert(0, 1)
 
         tk.Label(self.frameConfig, text="ERROR:", bg="#fafafa").place(relx=.47, rely=.5)
-        self.entCoeficiente = tk.Entry(self.frameConfig, width=6)
-        self.entCoeficiente.place(relx=.57, rely=.5)
-        self.entCoeficiente.insert(0, 0.0001)
+        self.errorMaximo = tk.Entry(self.frameConfig, width=6)
+        self.errorMaximo.place(relx=.57, rely=.5)
+        self.errorMaximo.insert(0, 0.001)
 
         tk.Label(self.frameConfig, text="ITERA:", bg="#fafafa").place(relx=.75, rely=.5)
         self.entIteraciones = tk.Entry(self.frameConfig, width=10)
@@ -105,8 +107,8 @@ class Views:
         self.neuro.NormalizarDatos(self.ruta)
         Matriz = pd.read_csv(self.ruta, delimiter=' ')
 
-        if('YD' in Matriz.columns):
-            messagebox.showinfo(message="No se encuentra salidas definidas en la matriz presentada", title="ERROR")
+        if 'YD1' not in Matriz.columns:
+            messagebox.showinfo(message="No se encuentra salidas definidas en la matriz presentada.", title="ERROR")
             return
 
         treeView = ttk.Treeview(self.frameData)
@@ -123,22 +125,18 @@ class Views:
         self.btnPausar['state'] = tk.NORMAL
 
         rta = int(self.entRataAprendizaje.get())
-        coe = float(self.entCoeficiente.get())
+        erm = float(self.errorMaximo.get())
         ite = int(self.entIteraciones.get())
 
-        if(rta != 1):
-            messagebox.showinfo(message="La Rata de Aprendizaje debe ser igual a 1", title="ERROR")
-            return
-        
-        if(coe < 0.0 or coe > 1.0):
-            messagebox.showinfo(message="El rango del Coeficiente de Vencidad se encuenta entre [0, 1]", title="ERROR")
+        if(rta > 1):
+            messagebox.showinfo(message="La Rata de Aprendizaje debe ser igual a 1 o menor", title="ERROR")
             return
 
-        self.neuro.Entrenar(rta, coe, ite, self.cobBoxCompetencia.get(), self.frameEntrenar)
+        self.neuro.Entrenar(rta, erm, ite, self.cobBoxCompetencia.get(), self.frameEntrenar)
         self.Graficar(self.frameEntranamiento, self.neuro.vsSalidas)
     
     def Event_btnPausar(self):
-        system('pause')
+        return
 
     def Event_btnCargarDatos(self):
         self._ruta = filedialog.askopenfilename()
@@ -149,7 +147,7 @@ class Views:
         self.LlenarTabla(treeView, Matriz)
 
     def Event_btnSimular(self):
-        self.neuro.Simular(self._ruta, float(self.entCoeficiente.get()))
+        self.neuro.Simular(self._ruta, float(self.errorMaximo.get()))
         self.Graficar(self.frameSimulacion, self.neuro.SalidasGeneradas)
     
     def LlenarTabla(self, treeView, Matriz):
@@ -170,13 +168,16 @@ class Views:
         style.configure(treeView, rowheight=100, highlightthickness=0, bd=0)  
         treeView.place(relheight=1, relwidth=1)
 
-    def Graficar(self, frame, data_1):
+    def Graficar(self, frame, data):
         fig = Figure(figsize=(5, 4), dpi=100)
-        fig.add_subplot(111).plot(data_1,'o')
+        if np.array(data).ndim == 2:
+            fig.add_subplot(111).plot([fila[0] for fila in data], 'o', [fila[1] for fila in data], '^')
+        else:
+            fig.add_subplot(111).plot(data, 'o')
 
-        canvas = FigureCanvasTkAgg(fig,master=frame)
+        canvas = FigureCanvasTkAgg(fig, master=frame)
         canvas.draw()
-        canvas.get_tk_widget().place(relwidth=1,relheight=1)
+        canvas.get_tk_widget().place(relwidth=1, relheight=1)
 
     def Event_btnLimpiar(self):
         self.neuro.Limpiar()
