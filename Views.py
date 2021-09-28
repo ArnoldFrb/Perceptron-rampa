@@ -57,8 +57,9 @@ class Views:
         tk.Label(self.frameConfigInicial, text="SALIDAS", bg="#fafafa").place(relx=.21, rely=.35)
         tk.Label(self.frameConfigInicial, text="PATRONES", bg="#fafafa").place(relx=.4, rely=.35)
         self.cobBoxCompetencia = ttk.Combobox(self.frameConfigInicial)
+        self.cobBoxCompetencia["values"] = ['ESCALON', 'LINEAL', 'SIGMOIDE', 'RAMPA']
         self.cobBoxCompetencia.place(relx=.63, rely=.35)
-        self.cobBoxCompetencia.insert(0, "SIGMOIDE")
+        self.cobBoxCompetencia.insert(0, "RAMPA")
 
         # FRAME PARA VISUALIZAR LOS DATOS DE ENTRENAMIENTO
         self.frameData = tk.Frame(frameMain, background="#fafafa", width=450, height=264)
@@ -104,10 +105,7 @@ class Views:
         self.ruta = filedialog.askopenfilename()
         self.neuro.NormalizarDatos(self.ruta)
 
-        if self.neuro.rampa:
-            self.cobBoxCompetencia["values"] = ['ESCALON', 'LINEAL', 'SIGMOIDE', 'RAMPA']
-        else:
-            self.cobBoxCompetencia["values"] = ['ESCALON', 'LINEAL', 'SIGMOIDE']
+        tk.Label(self.frameConfig, text=os.path.basename(os.path.splitext(self.ruta)[0]), bg="#fafafa").place(relx=.85, rely=.01)
 
         Matriz = pd.read_csv(self.ruta, delimiter=' ')
         
@@ -119,9 +117,9 @@ class Views:
         self.CrearGrid(treeView, self.frameData)
         self.LlenarTabla(treeView, Matriz)
 
-        tk.Label(self.frameConfigInicial, text=str(len(self.neuro.Entradas)), bg="#fafafa").place(relx=.148, rely=.35)
-        tk.Label(self.frameConfigInicial, text=str(len(self.neuro.Salidas)), bg="#fafafa").place(relx=.32, rely=.35)
-        tk.Label(self.frameConfigInicial, text=str(len(self.neuro.Salidas[0])), bg="#fafafa").place(relx=.54, rely=.35)
+        tk.Label(self.frameConfigInicial, text=str(len(self.neuro.Entradas[0])), bg="#fafafa").place(relx=.148, rely=.35)
+        tk.Label(self.frameConfigInicial, text=str(len(self.neuro.Salidas[0])), bg="#fafafa").place(relx=.32, rely=.35)
+        tk.Label(self.frameConfigInicial, text=str(len(self.neuro.Salidas)), bg="#fafafa").place(relx=.54, rely=.35)
 
         self.btnEntrenar['state'] = tk.NORMAL
 

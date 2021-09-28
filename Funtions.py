@@ -12,10 +12,6 @@ class Funtions:
     def Generar_pesos(self, row, col):
         return np.random.uniform(-1, 1, [row, col])
 
-    # METODO PARA GENERAR UMBRALES
-    def Generar_umbrales(self, col):
-        return np.random.uniform(-1, 1, [col])
-
     # NORMALIZAR ENTRADAS
     def NormalizarMatrices(self, entrada):
         entradas = []
@@ -26,13 +22,13 @@ class Funtions:
             entradas.append(aux)
         return entradas
 
-    def FuncionSoma(self, entradas, pesos, umbrales):
+    def FuncionSoma(self, entradas, pesos):
         salidaSoma = []
         for i in range(len(pesos[0])):
             sumatoria = 0
             for j in range(len(pesos)):
                 sumatoria += entradas[j] * pesos[j][i]
-            salidaSoma.append(sumatoria - umbrales[i])
+            salidaSoma.append(sumatoria)
         return salidaSoma
 
     # METODO PARA OBTENER LA FUNCION ESCALON
@@ -43,13 +39,13 @@ class Funtions:
         return yr
 
     # METODO PARA OBTENER LA FUNCION ESCALON
-    def FuncionRampa(self, salidaSoma):
+    def FuncionRampa(self, salidaSoma, entrada, rampa):
         yr = []
         for i in range(len(salidaSoma)):
             if salidaSoma[i] < 0:
                 yr.append(0)
             if salidaSoma[i] >= 0 and salidaSoma[i] <= 1:
-                yr.append(salidaSoma[i])
+                yr.append(entrada if rampa else salidaSoma[i])
             if salidaSoma[i] > 1:
                 yr.append(1)
         return yr
@@ -67,12 +63,12 @@ class Funtions:
         return yr
 
     # NOMBRE DE LA FUNCION SALIDA
-    def FuncionSalida(self, funcionSalida, salidaSoma):
+    def FuncionSalida(self, funcionSalida, salidaSoma, entrada, rampa):
         switcher = {
             'ESCALON': self.FuncionEscalon(salidaSoma),
             'LINEAL': self.FuncionLineal(salidaSoma),
             'SIGMOIDE': self.FuncionSigmoide(salidaSoma),
-            'RAMPA': self.FuncionRampa(salidaSoma)
+            'RAMPA': self.FuncionRampa(salidaSoma, entrada, rampa)
         }
         return switcher.get(funcionSalida, "ERROR")
 
@@ -96,7 +92,3 @@ class Funtions:
                 pesos[i][j] += (entradas[i] * error[j] * rata)
         return pesos
 
-    def ActualizarUmbrales(self, umbrales, error, rata):
-        for i in range(len(umbrales)):
-            umbrales[i] += (rata * error[i] * 1)
-        return umbrales

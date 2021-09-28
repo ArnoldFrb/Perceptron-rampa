@@ -59,9 +59,6 @@ class Neorona:
         
         # INICIALIZAR PESOS
         pesos = self.func.Generar_pesos(len(self.Entradas[0]), len(self.Salidas[0]))
-       
-        # INICIALIZAR UMBRALES
-        umbrales = self.func.Generar_umbrales(len(self.Salidas[0]))
 
         GraficaError = []
         plt.style.use('ggplot')
@@ -77,8 +74,8 @@ class Neorona:
 
             for entrada, salida in zip(self.Entradas, self.Salidas):
 
-                salidaSoma = self.func.FuncionSoma(entrada, pesos, umbrales)
-                _salidaSoma = self.func.FuncionSalida(funcionSalida, salidaSoma)
+                salidaSoma = self.func.FuncionSoma(entrada, pesos)
+                _salidaSoma = self.func.FuncionSalida(funcionSalida, salidaSoma, entrada[0], self.rampa)
                 self.vsSalidas.append([sum(salida), sum(_salidaSoma)])
 
                 errorLineal = self.func.ErrorLineal(salida, _salidaSoma)
@@ -86,7 +83,6 @@ class Neorona:
                 self.errorRMS.append(errorPatron)
 
                 pesos = self.func.ActualizarPesos(cp.deepcopy(pesos), entrada, errorLineal, rataAprendizaje)
-                umbrales = self.func.ActualizarUmbrales(cp.deepcopy(umbrales), errorLineal, rataAprendizaje)
 
             Error = sum(self.errorRMS) / len(self.Entradas)
             tk.Label(frameBarra, text='Error: ' + str(round(Error, 7)), bg="#fafafa").place(relx=.15, rely=.6)
@@ -102,7 +98,7 @@ class Neorona:
             #CONDICIONES DE PARADA
             if Iteracion > numeroIteraciones or errorMaximo > Error:
                 if errorMaximo > Error:
-                    self.GuardarResultados(np.array(self.Entradas), pesos, umbrales, funcionSalida)
+                    self.GuardarResultados(np.array(self.Entradas), pesos, funcionSalida)
                 break
 
     # LLENAR MATRICES ENTRADAS
@@ -110,21 +106,17 @@ class Neorona:
         self.EntradasSimulacion = []
         self.SalidasSimulacion = []
         self.PesosSimulacion = []
-        self.UmbralesSimulacion = []
 
         Matriz = pd.read_excel(ruta, sheet_name='Matriz')
         MatrizPesos = pd.read_excel(ruta, sheet_name='Pesos')
-        MatrizUmbrales = pd.read_excel(ruta, sheet_name='Umbrales')
         MatrizFuncionActivacion = pd.read_excel(ruta, sheet_name='Configuracion')
 
         colMatriz = Matriz.columns
         colPesos = MatrizPesos.columns
         colFuncionActivacion = MatrizFuncionActivacion.columns
 
-
         columnMatriz = Matriz.to_numpy()
         columnPesos = MatrizPesos.to_numpy()
-        columnUmbrales = MatrizUmbrales.to_numpy()
         columnFuncionActivacion = MatrizFuncionActivacion.to_numpy()
 
         for i in range(len(colMatriz)):
@@ -138,9 +130,6 @@ class Neorona:
             for j in range(len(columnPesos)):
                 Fila.append(columnPesos[j,i])
             self.PesosSimulacion.append(Fila)
-        
-        for i in range(len(columnUmbrales)):
-            self.UmbralesSimulacion.append(columnUmbrales[i][0])
 
         for i in range(len(colFuncionActivacion)):
             Fila = []
@@ -157,22 +146,20 @@ class Neorona:
         self.EntradasSimulacion = self.func.NormalizarMatrices(self.EntradasSimulacion)
         self.PesosSimulacion = self.func.NormalizarMatrices(self.PesosSimulacion)
 
-        print('//////////////////////////////////////////////////////')
-        print('----------------------SIMULACION----------------------')
-        print()
+        rampa = []
+        for lista in self.EntradasSimulacion:
+            rampa.append(all(dato == lista[0] for dato in lista))
+
+        self.rampaSimulacion = all(dato == rampa[0] for dato in rampa)
 
         self.SalidasGeneradas = []
 
         for entrada in self.EntradasSimulacion:
-                salidaSoma = self.func.FuncionSoma(entrada, self.PesosSimulacion, self.UmbralesSimulacion)
-                _salidaSoma = self.func.FuncionSalida(self.FuncionActivacionSimulacion, salidaSoma)
+                salidaSoma = self.func.FuncionSoma(entrada, self.PesosSimulacion)
+                _salidaSoma = self.func.FuncionSalida(self.FuncionActivacionSimulacion, salidaSoma, entrada[0], self.rampaSimulacion)
                 self.SalidasGeneradas.append(sum(_salidaSoma))
 
-        print('SALIDAS:')
-        print(self.SalidasGeneradas)
-
-
-    def GuardarResultados(self, entradas, pesos, umbrales, funcionSalida):
+    def GuardarResultados(self, entradas, pesos, funcionSalida):
         ColumnaMatriz = []
         ColumnasPeso = []
 
@@ -184,7 +171,6 @@ class Neorona:
         
         dfMatrix = pd.DataFrame(entradas, columns=ColumnaMatriz)
         dfPesos = pd.DataFrame(pesos, columns=ColumnasPeso)
-        dfUmbrales = pd.DataFrame(umbrales, columns=['U'])
         dfConfig = pd.DataFrame([funcionSalida], columns=['Config'])
 
         try:
@@ -202,7 +188,6 @@ class Neorona:
         with pd.ExcelWriter('DATA/OUT/' + funcionSalida + '/' + self.Entranamiento + '.xlsx') as writer: # pylint: disable=abstract-class-instantiated
             dfMatrix.to_excel(writer, sheet_name='Matriz', index=False)
             dfPesos.to_excel(writer, sheet_name='Pesos', index=False)
-            dfUmbrales.to_excel(writer, sheet_name='Umbrales', index=False)
             dfConfig.to_excel(writer, sheet_name='Configuracion', index=False)
 
 if __name__ == '__main__':
