@@ -1,4 +1,3 @@
-from os import system
 import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter import filedialog
@@ -58,7 +57,6 @@ class Views:
         tk.Label(self.frameConfigInicial, text="SALIDAS", bg="#fafafa").place(relx=.21, rely=.35)
         tk.Label(self.frameConfigInicial, text="PATRONES", bg="#fafafa").place(relx=.4, rely=.35)
         self.cobBoxCompetencia = ttk.Combobox(self.frameConfigInicial)
-        self.cobBoxCompetencia["values"] = ['ESCALON', 'LINEAL', 'SIGMOIDE']
         self.cobBoxCompetencia.place(relx=.63, rely=.35)
         self.cobBoxCompetencia.insert(0, "SIGMOIDE")
 
@@ -105,8 +103,14 @@ class Views:
         
         self.ruta = filedialog.askopenfilename()
         self.neuro.NormalizarDatos(self.ruta)
-        Matriz = pd.read_csv(self.ruta, delimiter=' ')
 
+        if self.neuro.rampa:
+            self.cobBoxCompetencia["values"] = ['ESCALON', 'LINEAL', 'SIGMOIDE', 'RAMPA']
+        else:
+            self.cobBoxCompetencia["values"] = ['ESCALON', 'LINEAL', 'SIGMOIDE']
+
+        Matriz = pd.read_csv(self.ruta, delimiter=' ')
+        
         if 'YD1' not in Matriz.columns:
             messagebox.showinfo(message="No se encuentra salidas definidas en la matriz presentada.", title="ERROR")
             return

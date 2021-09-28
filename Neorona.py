@@ -40,6 +40,12 @@ class Neorona:
         
         self.Entradas = (self.func.NormalizarMatrices(cp.deepcopy(self.Entradas)))
         self.Salidas = self.func.NormalizarMatrices(cp.deepcopy(self.Salidas))
+
+        rampa = []
+        for lista in self.Entradas:
+            rampa.append(all(dato == lista[0] for dato in lista))
+
+        self.rampa = all(dato == rampa[0] for dato in rampa)
             
     # INICIAR ENTRENAMIENTO
     def Entrenar(self, rataAprendizaje, errorMaximo, numeroIteraciones, funcionSalida, frame):
@@ -187,11 +193,18 @@ class Neorona:
             if e.errno != errno.EEXIST:
                 raise
 
-        with pd.ExcelWriter('DATA/OUT/' + self.Entranamiento + '.xlsx') as writer: # pylint: disable=abstract-class-instantiated
+        try:
+            os.mkdir('DATA/OUT/' + funcionSalida)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+
+        with pd.ExcelWriter('DATA/OUT/' + funcionSalida + '/' + self.Entranamiento + '.xlsx') as writer: # pylint: disable=abstract-class-instantiated
             dfMatrix.to_excel(writer, sheet_name='Matriz', index=False)
             dfPesos.to_excel(writer, sheet_name='Pesos', index=False)
             dfUmbrales.to_excel(writer, sheet_name='Umbrales', index=False)
             dfConfig.to_excel(writer, sheet_name='Configuracion', index=False)
 
 if __name__ == '__main__':
-    print(np.random.uniform(-1,1,[2]))
+    lista = np.array([1, 0, 0])
+    print(all(dato == lista[0] for dato in lista))
